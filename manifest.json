@@ -1,0 +1,13 @@
+{
+    "manifest_version": 3,
+    "name": "Netflix IMDb ratings",
+    "version": "0.0.13",
+    "description": "This chrome extension was made to integrate IMDb ratings into the netflix website.",
+    "content_scripts": [
+        {
+            "matches": ["https://www.netflix.com/*"],
+            "js": ["content.js"],
+            "css":["styles.css"]
+        }
+    ]
+}
