@@ -17,10 +17,9 @@ function createIMDbRatingElement(topmargin) {
 
 function addImdbRating(params) {
     const imdbRatingDiv = params.doc.querySelector('.skeleton-square');
-    //console.log(imdbRatingDiv);
     if (imdbRatingDiv) {
         imdbRatingDiv.classList.remove('skeleton-square');
-        if(typeof params.rating === "string"){
+        if (typeof params.rating === "string") {
             imdbRatingDiv.classList.add('rating-num-white');
         }
         else if (params.rating >= 8.5) {
@@ -37,13 +36,10 @@ function addImdbRating(params) {
 
 function addIMDbRatings(params) {
     const parents = document.querySelectorAll(params.querySelect);
-    console.log('params.qSel = ', params.querySelect);
 
     if (parents) {
         parents.forEach((parent) => {
             if (!parent.querySelector('.imdb-rating')) {
-                //console.log("firstChild!: ", parent.firstElementChild);
-                //console.log(parent.firstElementChild.querySelector('.progress'));
                 if (!parent.firstElementChild.firstElementChild.querySelector('.boxart-rounded--mobile-game')) {
                     let imdbRating;
                     if (parent.firstElementChild.querySelector('.progress')) {
@@ -56,20 +52,19 @@ function addIMDbRatings(params) {
                     const aElement = parent.querySelector('a');
                     if (aElement) {
                         const title = aElement.getAttribute('aria-label');
-                        console.log(title);
                         if (title) {
                             fetchImdbDocument({ title })
                                 .then(showId => {
-                                    addImdbRating({ doc: imdbRating, rating: showId });
+                                    fetchImdbRating({ imdbId: showId })
+                                    .then(rating => addImdbRating({ doc: imdbRating, rating: rating }))
+                                    .catch(error => addImdbRating({ doc: imdbRating, rating: 'ER' }));
                                 })
                                 .catch(error => {
                                     console.error("Error fetching show:", error);
                                 });
-                            //console.log('yes title');
-                            
+
                         } else {
-                            //console.log('no title');
-                            //addImdbRating({doc: imdbRating, rating: 0.0});
+                            addImdbRating({doc: imdbRating, rating: 'NA'});
                         }
                     }
 
@@ -88,19 +83,35 @@ function fetchImdbDocument(params) {
             } else {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(response.html, "text/html");
-                //console.log(doc);
-                const showId = doc.querySelector('a.ipc-metadata-list-summary-item__t');
-                console.log("with ID: ", showId);
+                const anchorElement = doc.querySelector('a.ipc-metadata-list-summary-item__t');
+                if (!anchorElement) {
+                    reject('a element doesn\'t exist');
+                }
+                const showId = anchorElement.getAttribute('href')?.split("/").filter(Boolean)[1];
+                console.log(params.title, " ID: ", showId);
                 resolve(showId);
             }
         });
     })
 }
 
+function fetchImdbRating(params) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: "fetchRating", imdbId: params.imdbId }, response => {
+            if (response.error) {
+                console.error('Hi Adham IMDB: ', response.error);
+                reject(response.error);
+            } else {
+                const rating = response.json.data.title.rating.aggregate_rating;
+                resolve(rating);
+            }
+        });
+    });
+}
+
 //((3 + Math.random()*7).toFixed(1))
 
 let querySelect, secondParent, nextButtonSpans;
-console.log(window.location.pathname);
 if (window.location.pathname.includes('/browse')) {
     querySelect = ".slider-item";
     secondParent = ".lolomo";
@@ -126,7 +137,6 @@ const observer = new MutationObserver((entries, obs) => {
     if (nextButtonSpans) {
         var i = 0;
         nextButtonSpans.forEach((nbs) => {
-            console.log(++i, nbs);
             nbs.addEventListener('click', () => {
                 addIMDbRatings({ querySelect: querySelect });
             });
@@ -154,7 +164,6 @@ if (secondParentElement) {
         firstChangeFlag = false;
         const parentElement = document.querySelector('#main-view');
         const secondParentElement = document.querySelector(secondParent);
-        console.log(secondParentElement);
         if (secondParentElement) {
             observer.observe(secondParentElement, { childList: true });
         } else {
