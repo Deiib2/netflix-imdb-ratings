@@ -30,3 +30,24 @@
 .imdb-rating-lowered{
     margin-top: 12px;
 }
+
+.skeleton-square {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #747474;
+  animation: shimmer 1.2s infinite linear;
+  margin: 2px 1px 0 2px;
+}
+
+@keyframes shimmer {
+  0% {
+    background: #747474;
+  }
+  50%{
+    background: #e0e0e0;
+  }
+  100% {
+    background: #747474;
+  }
+}
