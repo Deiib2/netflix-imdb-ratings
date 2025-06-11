@@ -17,10 +17,13 @@ function createIMDbRatingElement(topmargin) {
 
 function addImdbRating(params) {
     const imdbRatingDiv = params.doc.querySelector('.skeleton-square');
-    console.log(imdbRatingDiv);
+    //console.log(imdbRatingDiv);
     if (imdbRatingDiv) {
         imdbRatingDiv.classList.remove('skeleton-square');
-        if (params.rating >= 8.5) {
+        if(typeof params.rating === "string"){
+            imdbRatingDiv.classList.add('rating-num-white');
+        }
+        else if (params.rating >= 8.5) {
             imdbRatingDiv.classList.add('rating-num-gold');
         } else if (params.rating >= 5.5) {
             imdbRatingDiv.classList.add('rating-num-white');
@@ -32,8 +35,9 @@ function addImdbRating(params) {
 
 }
 
-function addIMDbRatings() {
-    const parents = document.querySelectorAll('.slider-item');
+function addIMDbRatings(params) {
+    const parents = document.querySelectorAll(params.querySelect);
+    console.log('params.qSel = ', params.querySelect);
 
     if (parents) {
         parents.forEach((parent) => {
@@ -54,11 +58,17 @@ function addIMDbRatings() {
                         const title = aElement.getAttribute('aria-label');
                         console.log(title);
                         if (title) {
-                            //fetchImdbDocument({ title });
-                            console.log('yes title');
-                            addImdbRating({ doc: imdbRating, rating: 8.4 });
+                            fetchImdbDocument({ title })
+                                .then(showId => {
+                                    addImdbRating({ doc: imdbRating, rating: showId });
+                                })
+                                .catch(error => {
+                                    console.error("Error fetching show:", error);
+                                });
+                            //console.log('yes title');
+                            
                         } else {
-                            console.log('no title');
+                            //console.log('no title');
                             //addImdbRating({doc: imdbRating, rating: 0.0});
                         }
                     }
@@ -70,30 +80,99 @@ function addIMDbRatings() {
 }
 
 function fetchImdbDocument(params) {
-    chrome.runtime.sendMessage({ type: "fetchImdb", title: params.title }, response => {
-        if (response.error) {
-            console.error(response.error);
-        } else {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(response.html, "text/html");
-            console.log(doc);
-            console.log("with ID: ", doc.querySelector('a.ipc-metadata-list-summary-item__t'));
-        }
-    });
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: "fetchImdb", title: params.title }, response => {
+            if (response.error) {
+                console.error(response.error);
+                reject(response.error);
+            } else {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.html, "text/html");
+                //console.log(doc);
+                const showId = doc.querySelector('a.ipc-metadata-list-summary-item__t');
+                console.log("with ID: ", showId);
+                resolve(showId);
+            }
+        });
+    })
 }
 
 //((3 + Math.random()*7).toFixed(1))
 
-const parentElement = document.querySelector('#main-view');
+let querySelect, secondParent, nextButtonSpans;
+console.log(window.location.pathname);
+if (window.location.pathname.includes('/browse')) {
+    querySelect = ".slider-item";
+    secondParent = ".lolomo";
+} else if (window.location.pathname.includes('/search')) {
+    querySelect = ".ltr-1cjyscz";
+    secondParent = ".ltr-gncw81";
+}
 
+var firstChangeFlag = false;
+
+const parentElement = document.querySelector('#main-view');
 const observer = new MutationObserver((entries, obs) => {
-    addIMDbRatings();
+    addIMDbRatings({ querySelect });
     console.log("entries: ", entries);
-    const lolomo = document.querySelector('.lolomo');
-    if (lolomo) {
+
+    const parentDiv = document.querySelector(secondParent);
+    if (parentDiv && !firstChangeFlag) {
+        firstChangeFlag = true;
         obs.disconnect();
-        observer.observe(lolomo, { childList: true });
+        observer.observe(parentDiv, { childList: true });
+    }
+    nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active, span.handle.handlePrev.active');
+    if (nextButtonSpans) {
+        var i = 0;
+        nextButtonSpans.forEach((nbs) => {
+            console.log(++i, nbs);
+            nbs.addEventListener('click', () => {
+                addIMDbRatings({ querySelect: querySelect });
+            });
+        })
     }
 });
 
-observer.observe(parentElement, { childList: true });
+
+
+const secondParentElement = document.querySelector(secondParent);
+if (secondParentElement) {
+    observer.observe(secondParentElement, { childList: true });
+} else {
+    observer.observe(parentElement, { childList: true });
+}
+
+(() => {
+    chrome.runtime.onMessage.addListener((request, sender, response) => {
+        const type = request.type;
+        if (type !== "browse" && type !== "search") return;
+        console.log(type);
+        querySelect = request.querySelect;
+        secondParent = request.secondParent;
+        observer.disconnect();
+        firstChangeFlag = false;
+        const parentElement = document.querySelector('#main-view');
+        const secondParentElement = document.querySelector(secondParent);
+        console.log(secondParentElement);
+        if (secondParentElement) {
+            observer.observe(secondParentElement, { childList: true });
+        } else {
+            observer.observe(parentElement, { childList: true });
+        }
+        addIMDbRatings({ querySelect });
+        if (type === "browse") {
+            nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active, span.handle.handlePrev.active');
+            if (nextButtonSpans) {
+                nextButtonSpans.forEach((nbs) => {
+                    nbs.parentElement.children[0];
+                    nbs.addEventListener('click', () => {
+                        addIMDbRatings({ querySelect: querySelect });
+                    });
+                })
+            }
+        }
+
+    })
+})();
+
