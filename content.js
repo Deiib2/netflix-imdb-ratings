@@ -19,7 +19,7 @@ function addImdbRating(params) {
     const imdbRatingDiv = params.doc.querySelector('.skeleton-square');
     if (imdbRatingDiv) {
         imdbRatingDiv.classList.remove('skeleton-square');
-        if (typeof params.rating === "string") {
+        if (!numericRegex.test(params.rating)) {
             imdbRatingDiv.classList.add('rating-num-white');
         }
         else if (params.rating >= 8.5) {
@@ -53,18 +53,16 @@ function addIMDbRatings(params) {
                     if (aElement) {
                         const title = aElement.getAttribute('aria-label');
                         if (title) {
-                            fetchImdbDocument({ title })
-                                .then(showId => {
-                                    fetchImdbRating({ imdbId: showId })
-                                    .then(rating => addImdbRating({ doc: imdbRating, rating: rating }))
-                                    .catch(error => addImdbRating({ doc: imdbRating, rating: 'ER' }));
-                                })
-                                .catch(error => {
-                                    console.error("Error fetching show:", error);
-                                });
-
+                            chrome.storage.local.get([title]).then((result) => {
+                                console.log("cache result: ", result);
+                                if (result && result[title]) {
+                                    addImdbRating({ doc: imdbRating, rating: result[title] });
+                                } else {
+                                    getRatingFromTitle({ title: title, imdbRating: imdbRating });
+                                }
+                            });
                         } else {
-                            addImdbRating({doc: imdbRating, rating: 'NA'});
+                            addImdbRating({ doc: imdbRating, rating: 'NA' });
                         }
                     }
 
@@ -74,42 +72,44 @@ function addIMDbRatings(params) {
     }
 }
 
-function fetchImdbDocument(params) {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: "fetchImdb", title: params.title }, response => {
-            if (response.error) {
-                console.error(response.error);
-                reject(response.error);
+function getRatingFromTitle(props) {
+    fetchImdbRating({ title: props.title })
+        .then(rating => {
+            addImdbRating({ doc: props.imdbRating, rating: rating });
+            chrome.storage.local.set({ [props.title]: rating }).then(() => {
+                console.log(props.title, ' added to cache');
+            });
+        })
+        .catch(error => {
+            console.log('Bla Bla Adham', error);
+            if (error.Error === "Movie not found!") {
+                addImdbRating({ doc: props.imdbRating, rating: 'NA' });
+                chrome.storage.local.set({ [props.title]: rating }).then(() => {
+                    console.error(props.title, ' added to cache with ERROR');
+                });
             } else {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(response.html, "text/html");
-                const anchorElement = doc.querySelector('a.ipc-metadata-list-summary-item__t');
-                if (!anchorElement) {
-                    reject('a element doesn\'t exist');
-                }
-                const showId = anchorElement.getAttribute('href')?.split("/").filter(Boolean)[1];
-                console.log(params.title, " ID: ", showId);
-                resolve(showId);
+                addImdbRating({ doc: props.imdbRating, rating: 'ER' });
             }
+
         });
-    })
 }
 
 function fetchImdbRating(params) {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: "fetchRating", imdbId: params.imdbId }, response => {
+        chrome.runtime.sendMessage({ type: "fetchImdbRating", title: encodeURIComponent(params.title) }, response => {
+                console.log('hello adhoom', response);
             if (response.error) {
                 console.error('Hi Adham IMDB: ', response.error);
                 reject(response.error);
             } else {
-                const rating = response.json.data.title.rating.aggregate_rating;
-                resolve(rating);
+                resolve(response.rating);
             }
         });
     });
 }
 
 //((3 + Math.random()*7).toFixed(1))
+const numericRegex = /^-?\d+(\.\d+)?$/;
 
 let querySelect, secondParent, nextButtonSpans;
 if (window.location.pathname.includes('/browse')) {

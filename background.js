@@ -1,40 +1,23 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'fetchImdb') {
-    fetch(`https://www.imdb.com/find/?q=${request.title}&s=tt&exact=true&ref_=fn_ttl_ex`)
-      .then(res => res.text())
-      .then(htmlText => {
-        sendResponse({ html: htmlText });
+  console.log(request);
+  if (request.type === 'fetchImdbRating') {
+    fetch(`http://www.omdbapi.com/?t=${request.title}&apikey=$apiKey`)
+      .then(res => res.json())
+      .then(data => {
+        console.log(JSON.stringify(data, null, 2));
+        console.log(data.imdbRating);
+        if (data.Error) {
+          console.error('Fetch failed:', data.Error);
+          sendResponse({ error: data.Error });
+        } else {
+          sendResponse({ rating: data.imdbRating });
+        }
       })
       .catch(error => {
         console.error('Fetch failed:', error);
-        sendResponse({ error: 'Failed to fetch IMDb data' });
+        sendResponse(error);
       });
-    return true; // Needed to use sendResponse asynchronously
-  } else if (request.type === 'fetchRating') {
-    fetch('https://graph.imdbapi.dev/v1', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: 'query Title ($id: ID!){title(id: $id) { rating {aggregate_rating} } }',
-        variables: {
-          id: request.imdbId
-        }
-      })
-    }).then(res => {
-      console.log(res);
-      return res.json();
-    })
-      .then(data => {
-        console.log(JSON.stringify(data, null, 2));
-        sendResponse({ json: data });
-      })
-      .catch(err => {
-        console.error("Error fetching graphQL:", err);
-        sendResponse({ error: 'Failed to fetch IMDb ratings from imdbapi.dev' });
-      });
-    return true;
+      return true;
   }
 });
 

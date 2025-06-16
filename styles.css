@@ -4,6 +4,7 @@
     flex-direction: row;
     font-size: 12px;
     color: #747474;
+    position: absolute;
 }
 
 .imdb-star {
@@ -28,7 +29,8 @@
 }
 
 .imdb-rating-lowered{
-    margin-top: 12px;
+    margin-top: 14px;
+    position: relative;
 }
 
 .skeleton-square {
