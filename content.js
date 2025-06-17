@@ -1,3 +1,21 @@
+//Notes: handle the back button (span.handle.handlePrev.active)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function createIMDbRatingElement(topmargin) {
     const newdiv = document.createElement('div');
 
@@ -29,7 +47,7 @@ function addImdbRating(params) {
         } else {
             imdbRatingDiv.classList.add('rating-num-red');
         }
-        imdbRatingDiv.textContent = params.rating;
+        imdbRatingDiv.textContent = Number(params.rating).toFixed(1);
     }
 
 }
@@ -84,7 +102,7 @@ function getRatingFromTitle(props) {
             console.log('Bla Bla Adham', error);
             if (error.Error === "Movie not found!") {
                 addImdbRating({ doc: props.imdbRating, rating: 'NA' });
-                chrome.storage.local.set({ [props.title]: rating }).then(() => {
+                chrome.storage.local.set({ [props.title]: 'Not Found' }).then(() => {
                     console.error(props.title, ' added to cache with ERROR');
                 });
             } else {
@@ -107,6 +125,10 @@ function fetchImdbRating(params) {
         });
     });
 }
+
+chrome.storage.local.get(null, function(items) {
+  console.log(items); // All cached key-value pairs
+});
 
 //((3 + Math.random()*7).toFixed(1))
 const numericRegex = /^-?\d+(\.\d+)?$/;
