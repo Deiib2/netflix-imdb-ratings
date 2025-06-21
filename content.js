@@ -42,10 +42,6 @@ function addImdbRating(params) {
 
 function addIMDbRatings(params) {
     const parents = document.querySelectorAll(params.querySelect);
-
-    console.log('querySelect: ', params.querySelect);
-    console.log('air func parents: ', parents);
-
     if (parents) {
         parents.forEach((parent) => {
             if (!parent.querySelector('.imdb-rating')) {
@@ -63,7 +59,6 @@ function addIMDbRatings(params) {
                         const title = aElement.getAttribute('aria-label');
                         if (title) {
                             chrome.storage.local.get([title]).then((result) => {
-                                console.log("cache result: ", result);
                                 if (result && result[title]) {
                                     addImdbRating({ doc: imdbRating, rating: result[title] });
                                 } else {
@@ -85,16 +80,13 @@ function getRatingFromTitle(props) {
     fetchImdbRating({ title: props.title })
         .then(rating => {
             addImdbRating({ doc: props.imdbRating, rating: rating });
-            chrome.storage.local.set({ [props.title]: rating }).then(() => {
-                console.log(props.title, ' added to cache');
-            });
+            chrome.storage.local.set({ [props.title]: rating }).then(() => {});
         })
         .catch(error => {
-            console.log('Bla Bla Adham', error);
             if (error.Error === "Movie not found!") {
                 addImdbRating({ doc: props.imdbRating, rating: 'NA' });
                 chrome.storage.local.set({ [props.title]: 'Not Found' }).then(() => {
-                    console.error(props.title, ' added to cache with ERROR');
+                    console.warn(props.title, ' added to cache with ERROR');
                 });
             } else {
                 addImdbRating({ doc: props.imdbRating, rating: 'ER' });
@@ -106,9 +98,7 @@ function getRatingFromTitle(props) {
 function fetchImdbRating(params) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ type: "fetchImdbRating", title: encodeURIComponent(params.title) }, response => {
-            console.log('hello adhoom', response);
             if (response.error) {
-                console.error('Hi Adham IMDB: ', response.error);
                 reject(response.error);
             } else {
                 resolve(response.rating);
@@ -117,11 +107,6 @@ function fetchImdbRating(params) {
     });
 }
 
-chrome.storage.local.get(null, function (items) {
-    console.log(items); // All cached key-value pairs
-});
-
-//((3 + Math.random()*7).toFixed(1))
 const numericRegex = /^-?\d+(\.\d+)?$/;
 
 let querySelect, secondParent, nextButtonSpans, initialized, parentElement, observer;
@@ -131,10 +116,8 @@ initialized = false;
 function initDOM() {
     observer = new MutationObserver((entries, obs) => {
         addIMDbRatings({ querySelect });
-        console.log("entries: ", entries);
 
         const parentDiv = document.querySelector(secondParent);
-        console.log('Second parent after mutation: ', parentDiv);
         if (parentDiv && !firstChangeFlag) {
             firstChangeFlag = true;
             obs.disconnect();
@@ -152,7 +135,6 @@ function initDOM() {
     chrome.runtime.onMessage.addListener((request, sender, response) => {
         const type = request.type;
         if (type !== "browse" && type !== "search" && type !== "my-list") return;
-        console.log(request);
         querySelect = request.querySelect;
         secondParent = request.secondParent;
         firstChangeFlag = false;
@@ -166,7 +148,6 @@ function initDOM() {
                     parentElement = aroGenre;
                 }
             }
-            console.log('aro-genre', parentElement);
         }
         if(!initialized){
             initDOM();
@@ -179,7 +160,6 @@ function initDOM() {
         } else {
             observer.observe(parentElement, { childList: true });
         }
-        console.log(type, ", ", querySelect, ", parent: ", parentElement, ", secondParent: ", secondParentElement);
         addIMDbRatings({ querySelect });
         if (type === "browse") {
             nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
