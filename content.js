@@ -1,21 +1,3 @@
-//Notes: handle the back button (span.handle.handlePrev.active)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function createIMDbRatingElement(topmargin) {
     const newdiv = document.createElement('div');
 
@@ -39,6 +21,8 @@ function addImdbRating(params) {
         imdbRatingDiv.classList.remove('skeleton-square');
         if (!numericRegex.test(params.rating)) {
             imdbRatingDiv.classList.add('rating-num-white');
+            imdbRatingDiv.textContent = params.rating;
+            return;
         }
         else if (params.rating >= 8.5) {
             imdbRatingDiv.classList.add('rating-num-gold');
@@ -54,6 +38,9 @@ function addImdbRating(params) {
 
 function addIMDbRatings(params) {
     const parents = document.querySelectorAll(params.querySelect);
+
+    console.log('querySelect: ', params.querySelect);
+    console.log('air func parents: ', parents);
 
     if (parents) {
         parents.forEach((parent) => {
@@ -115,7 +102,7 @@ function getRatingFromTitle(props) {
 function fetchImdbRating(params) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ type: "fetchImdbRating", title: encodeURIComponent(params.title) }, response => {
-                console.log('hello adhoom', response);
+            console.log('hello adhoom', response);
             if (response.error) {
                 console.error('Hi Adham IMDB: ', response.error);
                 reject(response.error);
@@ -126,15 +113,18 @@ function fetchImdbRating(params) {
     });
 }
 
-chrome.storage.local.get(null, function(items) {
-  console.log(items); // All cached key-value pairs
+chrome.storage.local.get(null, function (items) {
+    console.log(items); // All cached key-value pairs
 });
 
 //((3 + Math.random()*7).toFixed(1))
 const numericRegex = /^-?\d+(\.\d+)?$/;
 
 let querySelect, secondParent, nextButtonSpans;
-if (window.location.pathname.includes('/browse')) {
+if (window.location.pathname.includes('/browse/my-list')) {
+    querySelect = ".slider-item";
+    secondParent = ".gallery";
+} else if (window.location.pathname.includes('/browse')) {
     querySelect = ".slider-item";
     secondParent = ".lolomo";
 } else if (window.location.pathname.includes('/search')) {
@@ -150,19 +140,15 @@ const observer = new MutationObserver((entries, obs) => {
     console.log("entries: ", entries);
 
     const parentDiv = document.querySelector(secondParent);
+    console.log('Second parent after mutation: ', parentDiv);
     if (parentDiv && !firstChangeFlag) {
         firstChangeFlag = true;
         obs.disconnect();
         observer.observe(parentDiv, { childList: true });
     }
-    nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active, span.handle.handlePrev.active');
+    nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
     if (nextButtonSpans) {
-        var i = 0;
-        nextButtonSpans.forEach((nbs) => {
-            nbs.addEventListener('click', () => {
-                addIMDbRatings({ querySelect: querySelect });
-            });
-        })
+        nextButtonSpans.forEach((nbs) => nextButtonSpanOnClick(nbs));
     }
 });
 
@@ -178,32 +164,53 @@ if (secondParentElement) {
 (() => {
     chrome.runtime.onMessage.addListener((request, sender, response) => {
         const type = request.type;
-        if (type !== "browse" && type !== "search") return;
-        console.log(type);
+        if (type !== "browse" && type !== "search" && type !== "my-list") return;
+        console.log(request);
         querySelect = request.querySelect;
         secondParent = request.secondParent;
         observer.disconnect();
         firstChangeFlag = false;
-        const parentElement = document.querySelector('#main-view');
-        const secondParentElement = document.querySelector(secondParent);
+        var parentElement = document.querySelector('#main-view');
+        if (window.location.pathname.includes('/browse/genre')) {
+            const emptyDiv = parentElement.children[0];
+            if (emptyDiv) {
+                parentElement = emptyDiv;
+                const aroGenre = parentElement.children[1];
+                if (aroGenre) {
+                    parentElement = aroGenre;
+                }
+            }
+            console.log('aro-genre', parentElement);
+        }
+        //deadly change: document ==> parentElement
+        const secondParentElement = parentElement.querySelector(secondParent);
         if (secondParentElement) {
             observer.observe(secondParentElement, { childList: true });
         } else {
             observer.observe(parentElement, { childList: true });
         }
+        console.log(type, ", ", querySelect, ", parent: ", parentElement, ", secondParent: ", secondParentElement);
         addIMDbRatings({ querySelect });
         if (type === "browse") {
-            nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active, span.handle.handlePrev.active');
+            nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
             if (nextButtonSpans) {
-                nextButtonSpans.forEach((nbs) => {
-                    nbs.parentElement.children[0];
-                    nbs.addEventListener('click', () => {
-                        addIMDbRatings({ querySelect: querySelect });
-                    });
-                })
+                nextButtonSpans.forEach((nbs) => nextButtonSpanOnClick(nbs));
             }
         }
 
     })
 })();
 
+function nextButtonSpanOnClick(nbs) {
+    nbs.addEventListener('click', () => {
+        setTimeout(() => {
+            addIMDbRatings({ querySelect: querySelect });
+            const pbs = nbs.parentElement.querySelector('span.handle.handlePrev.active');
+            if (pbs) {
+                pbs.addEventListener('click', () => {
+                    setTimeout(() => addIMDbRatings({ querySelect: querySelect }), 1000);
+                });
+            }
+        }, 1000);
+    });
+}

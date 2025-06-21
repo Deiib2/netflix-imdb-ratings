@@ -1,8 +1,9 @@
 {
     "manifest_version": 3,
     "name": "Netflix IMDb ratings",
-    "version": "0.7.1",
+    "version": "0.8.3",
     "description": "This chrome extension was made to integrate IMDb ratings into the netflix website.",
+    "author": "Adham Aldeib",
     "permissions":["storage","tabs"],
     "host_permissions": [
         "http://www.omdbapi.com/*"

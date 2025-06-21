@@ -1,4 +1,4 @@
-import {apiKey} from './draft.js';
+//import {apiKey} from './draft.js';
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log(request);
   if (request.type === 'fetchImdbRating') {
@@ -41,14 +41,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   console.log(tab);
   console.log(changeInfo);
-  if (tab.url && (tab.url.includes("netflix.com/browse") || tab.url.includes("netflix.com/latest")) && changeInfo.status && changeInfo.status == 'Complete') {
+  tab.url.includes("netflix.com/browse/my-list")
+  if (!(tab.url && tab.status && tab.status == 'complete')) return;
+  if (tab.url.includes("netflix.com/browse/my-list") ||
+    (tab.url.includes("netflix.com/browse/genre") && tab.url.includes("?") && tab.url.split("?")[1].includes("so=")) ||
+    tab.url.includes("netflix.com/browse/original-audio") || tab.url.includes("netflix.com/browse/audio") || tab.url.includes("netflix.com/browse/subtitles")
+  ) {
+    console.log('my-list');
+    chrome.tabs.sendMessage(tabId, {
+      type: "my-list",
+      querySelect: ".slider-item",
+      secondParent: ".gallery"
+    });
+  } else if ((tab.url.includes("netflix.com/browse") || tab.url.includes("netflix.com/latest"))) {
     console.log("HII");
     chrome.tabs.sendMessage(tabId, {
       type: "browse",
       querySelect: ".slider-item",
       secondParent: ".lolomo"
     });
-  } else if (tab.url && tab.url.includes("netflix.com/search") && changeInfo.status && changeInfo.status == 'Complete') {
+  } else if (tab.url.includes("netflix.com/search")) {
     chrome.tabs.sendMessage(tabId, {
       type: "search",
       querySelect: ".ltr-1cjyscz",
@@ -96,8 +108,8 @@ function fetchRatingRestv2(request) {
   return fetch(`https://rest.imdbapi.dev/v2/search/titles?query=${request.title}&page_size=1`)
     .then(res => res.json())
     .then(data => {
-      console.log(request.title, ": ", data.titles[0]);
-      if (data.titles) {
+      if (data.titles && data.titles.length > 0) {
+        console.log(request.title, ": ", data.titles[0]);
         return { rating: data.titles[0].rating.aggregate_rating };
       } else {
         console.warn('No movies Found for title: ', request.title, ' : ', data);

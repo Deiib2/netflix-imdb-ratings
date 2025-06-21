@@ -1,36 +1,38 @@
 .imdb-rating {
-    padding: 2px;
-    display: flex;
-    flex-direction: row;
-    font-size: 12px;
-    color: #747474;
-    position: absolute;
+  padding: 2px;
+  display: flex;
+  flex-direction: row;
+  font-size: 12px;
+  color: #545454;
+  position: absolute;
 }
 
 .imdb-star {
-    margin: -1.5px 0px 0 5px;
-    fill: #f5c518;
+  margin: -1.5px 0px 0 5px;
+  fill: #f5c518;
 }
 
 .rating-num-gold {
-    color: #f5c518;
-    font-weight: 500;
-    margin-left: 2px;
+  font-weight: 600;
+  margin-left: 2px;
+  background-image: linear-gradient(45deg, #FCF6BA, #f5c518);
+  color: transparent;
+  background-clip: text;
 }
 
-.rating-num-white{
-    color: #e0e0e0;
-    margin-left: 2px;
+.rating-num-white {
+  color: #e0e0e0;
+  margin-left: 2px;
 }
 
 .rating-num-red {
-    color: #e50373;
-    margin-left: 2px;
+  color: #e50373;
+  margin-left: 2px;
 }
 
-.imdb-rating-lowered{
-    margin-top: 14px;
-    position: relative;
+.imdb-rating-lowered {
+  margin-top: 14px;
+  position: relative;
 }
 
 .skeleton-square {
@@ -46,9 +48,11 @@
   0% {
     background: #747474;
   }
-  50%{
+
+  50% {
     background: #e0e0e0;
   }
+
   100% {
     background: #747474;
   }
