@@ -149,6 +149,9 @@ function initDOM() {
                 }
             }
         }
+        if (!parentElement) {
+            return;
+        }
         if(!initialized){
             initDOM();
         } else {
@@ -160,7 +163,11 @@ function initDOM() {
         } else {
             observer.observe(parentElement, { childList: true });
         }
-        addIMDbRatings({ querySelect });
+        if(type === "my-list") {
+            setTimeout(() => addIMDbRatings({ querySelect }), 20);
+        } else {
+            addIMDbRatings({ querySelect });
+        }
         if (type === "browse") {
             nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
             if (nextButtonSpans) {
