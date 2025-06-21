@@ -13,11 +13,9 @@
 }
 
 .rating-num-gold {
-  font-weight: 600;
+  color: #f5c518;
+  font-weight: 500;
   margin-left: 2px;
-  background-image: linear-gradient(45deg, #FCF6BA, #f5c518);
-  color: transparent;
-  background-clip: text;
 }
 
 .rating-num-white {

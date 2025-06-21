@@ -1,8 +1,7 @@
-//import {apiKey} from './draft.js';
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log(request);
   if (request.type === 'fetchImdbRating') {
-    fetch(`http://www.omdbapi.com/?t=${request.title}&apikey=${apiKey}`)
+    fetch(`https://www.omdbapi.com/?t=${request.title}&apikey=`)
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP response: ${res.status}`);

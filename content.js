@@ -1,3 +1,7 @@
+//handle rating = {}
+//caching policies
+
+
 function createIMDbRatingElement(topmargin) {
     const newdiv = document.createElement('div');
 
@@ -120,45 +124,28 @@ chrome.storage.local.get(null, function (items) {
 //((3 + Math.random()*7).toFixed(1))
 const numericRegex = /^-?\d+(\.\d+)?$/;
 
-let querySelect, secondParent, nextButtonSpans;
-if (window.location.pathname.includes('/browse/my-list')) {
-    querySelect = ".slider-item";
-    secondParent = ".gallery";
-} else if (window.location.pathname.includes('/browse')) {
-    querySelect = ".slider-item";
-    secondParent = ".lolomo";
-} else if (window.location.pathname.includes('/search')) {
-    querySelect = ".ltr-1cjyscz";
-    secondParent = ".ltr-gncw81";
-}
-
+let querySelect, secondParent, nextButtonSpans, initialized, parentElement, observer;
 var firstChangeFlag = false;
+initialized = false;
 
-const parentElement = document.querySelector('#main-view');
-const observer = new MutationObserver((entries, obs) => {
-    addIMDbRatings({ querySelect });
-    console.log("entries: ", entries);
+function initDOM() {
+    observer = new MutationObserver((entries, obs) => {
+        addIMDbRatings({ querySelect });
+        console.log("entries: ", entries);
 
-    const parentDiv = document.querySelector(secondParent);
-    console.log('Second parent after mutation: ', parentDiv);
-    if (parentDiv && !firstChangeFlag) {
-        firstChangeFlag = true;
-        obs.disconnect();
-        observer.observe(parentDiv, { childList: true });
-    }
-    nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
-    if (nextButtonSpans) {
-        nextButtonSpans.forEach((nbs) => nextButtonSpanOnClick(nbs));
-    }
-});
-
-
-
-const secondParentElement = document.querySelector(secondParent);
-if (secondParentElement) {
-    observer.observe(secondParentElement, { childList: true });
-} else {
-    observer.observe(parentElement, { childList: true });
+        const parentDiv = document.querySelector(secondParent);
+        console.log('Second parent after mutation: ', parentDiv);
+        if (parentDiv && !firstChangeFlag) {
+            firstChangeFlag = true;
+            obs.disconnect();
+            observer.observe(parentDiv, { childList: true });
+        }
+        nextButtonSpans = document.querySelectorAll('span.handle.handleNext.active');
+        if (nextButtonSpans) {
+            nextButtonSpans.forEach((nbs) => nextButtonSpanOnClick(nbs));
+        }
+    });
+    initialized = true;
 }
 
 (() => {
@@ -168,9 +155,8 @@ if (secondParentElement) {
         console.log(request);
         querySelect = request.querySelect;
         secondParent = request.secondParent;
-        observer.disconnect();
         firstChangeFlag = false;
-        var parentElement = document.querySelector('#main-view');
+        parentElement = document.querySelector('#main-view');
         if (window.location.pathname.includes('/browse/genre')) {
             const emptyDiv = parentElement.children[0];
             if (emptyDiv) {
@@ -182,7 +168,11 @@ if (secondParentElement) {
             }
             console.log('aro-genre', parentElement);
         }
-        //deadly change: document ==> parentElement
+        if(!initialized){
+            initDOM();
+        } else {
+            observer.disconnect();
+        }
         const secondParentElement = parentElement.querySelector(secondParent);
         if (secondParentElement) {
             observer.observe(secondParentElement, { childList: true });
@@ -197,7 +187,6 @@ if (secondParentElement) {
                 nextButtonSpans.forEach((nbs) => nextButtonSpanOnClick(nbs));
             }
         }
-
     })
 })();
 
