@@ -1,7 +1,3 @@
-//handle rating = {}
-//caching policies
-
-
 function createIMDbRatingElement(topmargin) {
     const newdiv = document.createElement('div');
 
@@ -85,9 +81,7 @@ function getRatingFromTitle(props) {
         .catch(error => {
             if (error.Error === "Movie not found!") {
                 addImdbRating({ doc: props.imdbRating, rating: 'NA' });
-                chrome.storage.local.set({ [props.title]: 'Not Found' }).then(() => {
-                    console.warn(props.title, ' added to cache with ERROR');
-                });
+                chrome.storage.local.set({ [props.title]: 'Not Found' }).then(() => {});
             } else {
                 addImdbRating({ doc: props.imdbRating, rating: 'ER' });
             }
